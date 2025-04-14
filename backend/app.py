@@ -4,7 +4,7 @@ from flask_cors import CORS
 import os
 
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests from React
+CORS(app)  # Enable cross-origin requests
 
 # Configure the SQLite database
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -24,27 +24,25 @@ class User(db.Model):
     def to_dict(self):
         return {"username": self.username, "role": self.role}
 
-# Create tables and default users before the first request
-@app.before_first_request
+# Function to create tables and add default users
 def create_tables():
     db.create_all()
-    # Add default student if not exists
+    # Add the default student user if not exists
     if not User.query.filter_by(username="student").first():
         student = User(username="student", password="12345", role="student")
         db.session.add(student)
-    # Add default teacher if not exists
+    # Add the default teacher user if not exists
     if not User.query.filter_by(username="teacher").first():
         teacher = User(username="teacher", password="678910", role="teacher")
         db.session.add(teacher)
     db.session.commit()
 
-# Login endpoint to authenticate users
+# Login endpoint for user authentication
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
-    # Check if there is a matching user in the database
     user = User.query.filter_by(username=username, password=password).first()
     if user:
         return jsonify({"message": "Login successful", "user": user.to_dict()}), 200
@@ -52,4 +50,7 @@ def login():
         return jsonify({"message": "Invalid credentials"}), 401
 
 if __name__ == '__main__':
+    # Ensure tables are created and default users added before starting the app
+    with app.app_context():
+        create_tables()
     app.run(debug=True)

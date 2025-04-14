@@ -1,0 +1,38 @@
+.App {
+  text-align: center;
+  margin-top: 50px;
+}
+
+.form-group {
+  margin: 10px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+input {
+  padding: 8px;
+  font-size: 16px;
+  width: 200px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.dashboard {
+  text-align: center;
+  margin-top: 50px;
+}
+
+.message {
+  margin-top: 15px;
+  font-size: 14px;
+  color: red;
+}
