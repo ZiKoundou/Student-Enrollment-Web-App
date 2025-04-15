@@ -18,11 +18,7 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     """
-    User model:
-      - username: unique username (e.g., 'ahepworth')
-      - password: plain for simplicity
-      - role: 'teacher' or 'student'
-      - display_name: for teachers, e.g. 'Ammon Hepworth'; for students you can keep it same as username or something else
+    User model with a display_name column.
     """
     __tablename__ = 'users'
 
@@ -42,9 +38,7 @@ class User(db.Model):
 
 class Course(db.Model):
     """
-    Course model:
-      - name, teacher, time, capacity
-      - teacher: store the teacher's display_name. Example: 'Ammon Hepworth'
+    Course model.
     """
     __tablename__ = 'courses'
 
@@ -70,7 +64,7 @@ class Course(db.Model):
 
 class Enrollment(db.Model):
     """
-    Enrollment model (a join table between User and Course) with an extra 'grade' column.
+    Enrollment model (join table) with a grade column.
     """
     __tablename__ = 'enrollments'
 
@@ -79,9 +73,10 @@ class Enrollment(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
     grade = db.Column(db.Integer, nullable=False, default=0)
 
-# ============= UTILITY FUNCTION ============= #
+# ============= SEEDING FUNCTION ============= #
 
 def create_and_seed_db():
+    # Create tables if they don't exist (assumes they exist otherwise)
     db.create_all()
 
     # --- Create Teacher Users ---
@@ -100,41 +95,53 @@ def create_and_seed_db():
             ))
     db.session.commit()
 
-    # --- Create Student User ---
+    # --- Create the Default Student User ---
     if not User.query.filter_by(username="student").first():
         student = User(
             username="student",
             password="12345",
             role="student",
-            display_name="Johnny Student"  # Or any name
+            display_name="Johnny Student"
         )
         db.session.add(student)
     db.session.commit()
 
-    # --- Create Default Courses ---
+    # --- Create Additional 4 Student Users ---
+    additional_students = ["student1", "student2", "student3", "student4"]
+    for s in additional_students:
+        if not User.query.filter_by(username=s).first():
+            db.session.add(User(
+                username=s,
+                password="12345",
+                role="student",
+                display_name=s  # using the username as the display name
+            ))
+    db.session.commit()
+
+    # --- Create Default Courses (if they do not already exist) ---
     if not Course.query.first():
         course_data = [
             {
                 "name": "Physics 121",
-                "teacher": "Susan Walker",   # matches swalker
+                "teacher": "Susan Walker",   # associated with swalker
                 "time": "TR 11:00-11:50 AM",
                 "capacity": 10
             },
             {
                 "name": "CS 106",
-                "teacher": "Ammon Hepworth", # matches ahepworth
+                "teacher": "Ammon Hepworth",   # associated with ahepworth
                 "time": "MWF 2:00-2:50 PM",
                 "capacity": 10
             },
             {
                 "name": "Math 101",
-                "teacher": "Ralph Jenkins",  # matches rjenkins
+                "teacher": "Ralph Jenkins",    # associated with rjenkins
                 "time": "MWF 10:00-10:50 AM",
                 "capacity": 8
             },
             {
                 "name": "CS 162",
-                "teacher": "Ammon Hepworth", # matches ahepworth
+                "teacher": "Ammon Hepworth",   # associated with ahepworth
                 "time": "TR 3:00-3:50 PM",
                 "capacity": 4
             }
@@ -144,58 +151,56 @@ def create_and_seed_db():
             db.session.add(new_course)
         db.session.commit()
 
-    # --- Enroll Default Student in Some Courses with grade 80 ---
+    # --- Enroll the Default Student ("student") in Some Courses with Grade 80 ---
     student_user = User.query.filter_by(username="student").first()
     if student_user:
         physics_course = Course.query.filter_by(name="Physics 121").first()
         cs106_course = Course.query.filter_by(name="CS 106").first()
-
-        if physics_course and not Enrollment.query.filter_by(
-            user_id=student_user.id, course_id=physics_course.id).first():
+        if physics_course and not Enrollment.query.filter_by(user_id=student_user.id, course_id=physics_course.id).first():
             db.session.add(Enrollment(user_id=student_user.id, course_id=physics_course.id, grade=80))
-
-        if cs106_course and not Enrollment.query.filter_by(
-            user_id=student_user.id, course_id=cs106_course.id).first():
+        if cs106_course and not Enrollment.query.filter_by(user_id=student_user.id, course_id=cs106_course.id).first():
             db.session.add(Enrollment(user_id=student_user.id, course_id=cs106_course.id, grade=80))
         db.session.commit()
 
-# ============= ROUTES ============= #
+    # --- Enroll Each Additional Student in ALL Courses with Grade 50 ---
+    additional_student_objs = User.query.filter(User.username.in_(additional_students)).all()
+    all_courses = Course.query.all()
+    for student in additional_student_objs:
+        for course in all_courses:
+            if not Enrollment.query.filter_by(user_id=student.id, course_id=course.id).first():
+                db.session.add(Enrollment(user_id=student.id, course_id=course.id, grade=50))
+    db.session.commit()
 
-# --- LOGIN ---
+# ============= ROUTES (unchanged) ============= #
+# (Login, Logout, Student and Teacher endpoints remain the same as in your previous code.)
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
-
     user = User.query.filter_by(username=username, password=password).first()
     if user:
         return jsonify({"message": "Login successful", "user": user.to_dict()}), 200
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
-# --- LOGOUT ---
 @app.route('/logout', methods=['POST'])
 def logout():
-    # Typically handled by frontend (clear tokens, etc.)
-    # We'll just return success.
     return jsonify({"message": "Logout successful"}), 200
 
-# --- GET ALL COURSES (STUDENT "ADD COURSES") ---
 @app.route('/courses', methods=['GET'])
 def get_all_courses():
     courses = Course.query.all()
     data = [course.to_dict(include_enrolled=True) for course in courses]
     return jsonify(data), 200
 
-# --- STUDENT: GET ENROLLED COURSES ---
 @app.route('/student/courses', methods=['GET'])
 def get_student_courses():
     username = request.args.get("username")
     user = User.query.filter_by(username=username, role="student").first()
     if not user:
         return jsonify({"message": "Student not found"}), 404
-
     enrollments = Enrollment.query.filter_by(user_id=user.id).all()
     enrolled_courses = []
     for e in enrollments:
@@ -205,70 +210,53 @@ def get_student_courses():
         enrolled_courses.append(cdata)
     return jsonify(enrolled_courses), 200
 
-# --- STUDENT: ENROLL IN A COURSE ---
 @app.route('/student/enroll', methods=['POST'])
 def enroll_student_in_course():
     data = request.get_json()
     username = data.get("username")
     course_id = data.get("course_id")
-
     user = User.query.filter_by(username=username, role="student").first()
     if not user:
         return jsonify({"message": "Student not found"}), 404
-
     course = Course.query.filter_by(id=course_id).first()
     if not course:
         return jsonify({"message": "Course not found"}), 404
-
-    # Check capacity
-    current_enrolled = len(course.enrollments)
-    if current_enrolled >= course.capacity:
+    if len(course.enrollments) >= course.capacity:
         return jsonify({"message": "Course is full"}), 400
-
-    # Check if student already enrolled
     if Enrollment.query.filter_by(user_id=user.id, course_id=course.id).first():
         return jsonify({"message": "Already enrolled in this course"}), 400
-
-    enrollment = Enrollment(user_id=user.id, course_id=course.id, grade=80)  # default grade
+    enrollment = Enrollment(user_id=user.id, course_id=course.id, grade=80)
     db.session.add(enrollment)
     db.session.commit()
     return jsonify({"message": "Enrolled successfully"}), 200
 
-# --- STUDENT: REMOVE A COURSE ---
 @app.route('/student/remove', methods=['POST'])
 def remove_student_from_course():
     data = request.get_json()
     username = data.get("username")
     course_id = data.get("course_id")
-
     user = User.query.filter_by(username=username, role="student").first()
     if not user:
         return jsonify({"message": "Student not found"}), 404
-
     enrollment = Enrollment.query.filter_by(user_id=user.id, course_id=course_id).first()
     if not enrollment:
         return jsonify({"message": "Not enrolled in this course"}), 404
-
     db.session.delete(enrollment)
     db.session.commit()
     return jsonify({"message": "Course removed successfully"}), 200
 
-# --- TEACHER: GET COURSES BY TEACHER (Matches display_name to course.teacher) ---
 @app.route('/teacher/courses', methods=['GET'])
 def teacher_courses():
     username = request.args.get("username")
     teacher_user = User.query.filter_by(username=username, role="teacher").first()
     if not teacher_user:
         return jsonify({"message": "Teacher not found"}), 404
-
     courses = Course.query.filter_by(teacher=teacher_user.display_name).all()
     data = [course.to_dict(include_enrolled=True) for course in courses]
     return jsonify(data), 200
 
-# --- TEACHER: GET ENROLLMENTS FOR A COURSE ---
 @app.route('/teacher/course/<int:course_id>/enrollments', methods=['GET'])
 def teacher_course_enrollments(course_id):
-    # Return the list of students (with their grade) for a given course
     enrollments = Enrollment.query.filter_by(course_id=course_id).all()
     results = []
     for e in enrollments:
@@ -282,46 +270,29 @@ def teacher_course_enrollments(course_id):
             })
     return jsonify(results), 200
 
-# --- TEACHER: UPDATE A STUDENT'S GRADE ---
 @app.route('/teacher/update_grade', methods=['POST'])
 def teacher_update_grade():
-    """
-    Expects JSON: {
-      "teacher_username": "...",
-      "course_id": ...,
-      "student_username": "...",
-      "new_grade": ...
-    }
-    Checks if teacher matches the course's teacher, then updates the grade in enrollment.
-    """
     data = request.get_json()
     teacher_username = data.get("teacher_username")
     course_id = data.get("course_id")
     student_username = data.get("student_username")
     new_grade = data.get("new_grade")
-
-    # Validate teacher
     teacher_user = User.query.filter_by(username=teacher_username, role="teacher").first()
     if not teacher_user:
         return jsonify({"message": "Teacher not found"}), 404
     course = Course.query.filter_by(id=course_id, teacher=teacher_user.display_name).first()
     if not course:
         return jsonify({"message": "Course not found or does not belong to you"}), 404
-
-    # Validate student enrollment
     student_user = User.query.filter_by(username=student_username, role="student").first()
     if not student_user:
         return jsonify({"message": "Student not found"}), 404
     enrollment = Enrollment.query.filter_by(user_id=student_user.id, course_id=course_id).first()
     if not enrollment:
         return jsonify({"message": "Student not enrolled in this course"}), 404
-
-    # Update grade
     try:
         new_grade_int = int(new_grade)
     except ValueError:
         return jsonify({"message": "Invalid grade format"}), 400
-
     enrollment.grade = new_grade_int
     db.session.commit()
     return jsonify({"message": "Grade updated successfully"}), 200
