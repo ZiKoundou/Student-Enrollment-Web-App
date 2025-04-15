@@ -7,6 +7,7 @@
   margin: 10px;
 }
 
+
 label {
   display: block;
   font-weight: bold;
@@ -35,4 +36,91 @@ button {
   margin-top: 15px;
   font-size: 14px;
   color: red;
+}
+
+.login-container {
+  max-width: 400px;
+  margin: 60px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-family: sans-serif;
+  background-color: #f9f9f9;
+}
+
+.login-form .form-group {
+  margin-bottom: 15px;
+}
+
+.login-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.login-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background-color: #357ABD;
+}
+
+.login-message {
+  margin-top: 15px;
+  color: red;
+  font-weight: 500;
+  text-align: center;
+}
+
+.default-button {
+  background-color: #4A90E2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  margin-left: 10px;
+}
+.default-button :hover {
+  background-color: #357ABD;
+}
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 24px;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.side-panel {
+  position: fixed; /* Fixed position to stay on the side */
+  top: 0;
+  left: 0;
+  width: 200px; /* Adjust width as needed */
+  height: 100%;
+  background-color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 50px; /* Adjust for vertical spacing */
 }

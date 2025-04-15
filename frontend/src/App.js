@@ -60,30 +60,32 @@ function App() {
 
   // If no dashboard applies, show the login form.
   return (
-    <div className="App">
+    <div className="login-container">
       <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>Username:</label>
+      <form onSubmit={handleLogin} className="login-form">
+        <div className="form-group">
+          <label htmlFor="username">Username:</label>
           <input 
+            id="username"
             type="text" 
             value={username}
             onChange={(e) => setUsername(e.target.value)} 
             required 
           />
         </div>
-        <div>
-          <label>Password:</label>
+        <div className="form-group">
+          <label htmlFor="password">Password:</label>
           <input 
+            id="password"
             type="password" 
             value={password}
             onChange={(e) => setPassword(e.target.value)} 
             required 
           />
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" className="login-button">Login</button>
       </form>
-      {message && <p className="message">{message}</p>}
+      {message && <p className="login-message">{message}</p>}
     </div>
   );
 }
@@ -162,7 +164,7 @@ function TeacherDashboard({ user, onLogout }) {
             }}
             onClick={() => handleSelectCourse(course)}
           >
-            <p><strong>{course.name}</strong> – {course.time}</p>
+            <p><strong>{course.name}</strong>  {course.time}</p>
             <p>Enrolled: {course.students_enrolled}/{course.capacity}</p>
           </div>
         ))}
@@ -280,59 +282,64 @@ function StudentDashboard({ user, onLogout }) {
   };
 
   return (
-    <div className="dashboard">
-      <h2>Welcome, Student {user.display_name}!</h2>
-      <button onClick={onLogout}>Logout</button>
+    <div className="container">
+      <div className="dashboard">
+        <h2>Welcome, Student {user.display_name}!</h2>
+        <button className= "default-button" onClick={onLogout}>Logout</button>
 
-      <div style={{ marginTop: '20px' }}>
-        <button onClick={() => setTab('myCourses')}>Your Courses</button>
-        <button onClick={() => setTab('addCourses')}>Add/Remove Courses</button>
-      </div>
-
-      {tab === 'myCourses' && (
-        <div>
-          <h3>Your Courses</h3>
-          {myCourses.map((course) => (
-            <div key={course.id} className="course-card">
-              <p><strong>Course Name:</strong> {course.name}</p>
-              <p><strong>Teacher:</strong> {course.teacher}</p>
-              <p><strong>Time:</strong> {course.time}</p>
-              <p><strong>Enrolled:</strong> {course.students_enrolled}/{course.capacity}</p>
-              <p><strong>Your Grade:</strong> {course.grade}</p>
-              <hr />
-            </div>
-          ))}
+        <div style={{ marginTop: '20px' , marginLeft: "100px", marginRight: "100px"}}>
+          <button className= "default-button"onClick={() => setTab('myCourses')}>Your Courses</button>
+          <button className= "default-button"onClick={() => setTab('addCourses')}>Add/Remove Courses</button>
         </div>
-      )}
-
-      {tab === 'addCourses' && (
-        <div>
-          <h3>Add/Remove Courses</h3>
-          {allCourses.map((course) => {
-            const isEnrolled = myCourses.some((mc) => mc.id === course.id);
-            const isFull = course.students_enrolled >= course.capacity;
-            return (
+    </div>
+    <div className="container">
+        {tab === 'myCourses' && (
+          <div>
+            <h3>Your Courses</h3>
+            {myCourses.map((course) => (
               <div key={course.id} className="course-card">
+                
+                <hr />
                 <p><strong>Course Name:</strong> {course.name}</p>
                 <p><strong>Teacher:</strong> {course.teacher}</p>
                 <p><strong>Time:</strong> {course.time}</p>
                 <p><strong>Enrolled:</strong> {course.students_enrolled}/{course.capacity}</p>
-                {isEnrolled ? (
-                  <button onClick={() => removeFromCourse(course.id)}>Remove</button>
-                ) : (
-                  !isFull ? (
-                    <button onClick={() => enrollInCourse(course.id)}>Enroll</button>
-                  ) : (
-                    <p>This course is full.</p>
-                  )
-                )}
+                <p><strong>Your Grade:</strong> {course.grade}</p>
                 <hr />
               </div>
-            );
-          })}
-        </div>
-      )}
-      {message && <p className="message">{message}</p>}
+            ))}
+          </div>
+        )}
+
+        {tab === 'addCourses' && (
+          <div>
+            <h3>Add/Remove Courses</h3>
+            {allCourses.map((course) => {
+              const isEnrolled = myCourses.some((mc) => mc.id === course.id);
+              const isFull = course.students_enrolled >= course.capacity;
+              return (
+                <div key={course.id} className="course-card">
+                  <p><strong>Course Name:</strong> {course.name}</p>
+                  <p><strong>Teacher:</strong> {course.teacher}</p>
+                  <p><strong>Time:</strong> {course.time}</p>
+                  <p><strong>Enrolled:</strong> {course.students_enrolled}/{course.capacity}</p>
+                  {isEnrolled ? (
+                    <button className= "default-button"onClick={() => removeFromCourse(course.id)}>Remove</button>
+                  ) : (
+                    !isFull ? (
+                      <button className= "default-button"onClick={() => enrollInCourse(course.id)}>Enroll</button>
+                    ) : (
+                      <p>This course is full.</p>
+                    )
+                  )}
+                  <hr />
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {message && <p className="message">{message}</p>}
+      </div>
     </div>
   );
 }
