@@ -1,10 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+from wtforms.fields import SelectField
 import os
 
 app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests from React
+app.secret_key = 'mysecretkey'
+CORS(app, supports_credentials=True)
 
 # Configure the SQLite database
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -18,16 +22,17 @@ db = SQLAlchemy(app)
 
 class User(db.Model):
     """
-    User model with a display_name column.
+    User model with display_name.
+    Role can be 'teacher', 'student', or 'admin'.
     """
     __tablename__ = 'users'
-
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     password = db.Column(db.String(64), nullable=False)
     role = db.Column(db.String(20), nullable=False)
     display_name = db.Column(db.String(128), nullable=False)
-
+    
     def to_dict(self):
         return {
             "id": self.id,
@@ -41,13 +46,14 @@ class Course(db.Model):
     Course model.
     """
     __tablename__ = 'courses'
-
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     teacher = db.Column(db.String(128), nullable=False)
     time = db.Column(db.String(128), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
-
+    
+    # Relationship to Enrollment
     enrollments = db.relationship('Enrollment', backref='course', lazy=True)
 
     def to_dict(self, include_enrolled=False):
@@ -67,7 +73,7 @@ class Enrollment(db.Model):
     Enrollment model (join table) with a grade column.
     """
     __tablename__ = 'enrollments'
-
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
@@ -76,8 +82,17 @@ class Enrollment(db.Model):
 # ============= SEEDING FUNCTION ============= #
 
 def create_and_seed_db():
-    # Create tables if they don't exist (assumes they exist otherwise)
     db.create_all()
+
+    # --- Create Admin User ---
+    if not User.query.filter_by(username="admin").first():
+        db.session.add(User(
+            username="admin",
+            password="bruh",
+            role="admin",
+            display_name="Administrator"
+        ))
+    db.session.commit()
 
     # --- Create Teacher Users ---
     teacher_users = [
@@ -97,16 +112,14 @@ def create_and_seed_db():
 
     # --- Create the Default Student User ---
     if not User.query.filter_by(username="student").first():
-        student = User(
+        db.session.add(User(
             username="student",
             password="12345",
             role="student",
             display_name="Johnny Student"
-        )
-        db.session.add(student)
+        ))
     db.session.commit()
 
-    # --- Create Additional 4 Student Users ---
     additional_students = ["student1", "student2", "student3", "student4"]
     for s in additional_students:
         if not User.query.filter_by(username=s).first():
@@ -114,41 +127,40 @@ def create_and_seed_db():
                 username=s,
                 password="12345",
                 role="student",
-                display_name=s  # using the username as the display name
+                display_name=s
             ))
     db.session.commit()
 
-    # --- Create Default Courses (if they do not already exist) ---
+    # --- Create Default Courses ---
     if not Course.query.first():
         course_data = [
             {
                 "name": "Physics 121",
-                "teacher": "Susan Walker",   # associated with swalker
+                "teacher": "Susan Walker",
                 "time": "TR 11:00-11:50 AM",
                 "capacity": 10
             },
             {
                 "name": "CS 106",
-                "teacher": "Ammon Hepworth",   # associated with ahepworth
+                "teacher": "Ammon Hepworth",
                 "time": "MWF 2:00-2:50 PM",
                 "capacity": 10
             },
             {
                 "name": "Math 101",
-                "teacher": "Ralph Jenkins",    # associated with rjenkins
+                "teacher": "Ralph Jenkins",
                 "time": "MWF 10:00-10:50 AM",
                 "capacity": 8
             },
             {
                 "name": "CS 162",
-                "teacher": "Ammon Hepworth",   # associated with ahepworth
+                "teacher": "Ammon Hepworth",
                 "time": "TR 3:00-3:50 PM",
                 "capacity": 4
             }
         ]
         for c in course_data:
-            new_course = Course(**c)
-            db.session.add(new_course)
+            db.session.add(Course(**c))
         db.session.commit()
 
     # --- Enroll the Default Student ("student") in Some Courses with Grade 80 ---
@@ -171,8 +183,59 @@ def create_and_seed_db():
                 db.session.add(Enrollment(user_id=student.id, course_id=course.id, grade=50))
     db.session.commit()
 
-# ============= ROUTES (unchanged) ============= #
-# (Login, Logout, Student and Teacher endpoints remain the same as in your previous code.)
+# ============= ADMIN PANEL SETUP ============= #
+
+# Create a Secure ModelView that only allows admin access.
+class SecureModelView(ModelView):
+    def is_accessible(self):
+        user = session.get("user")
+        return user is not None and user.get("role") == "admin"
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('login', next=request.url))
+
+# Allow editing password in Admin
+class UserAdmin(SecureModelView):
+    form_columns = ('username', 'password', 'role', 'display_name')
+    
+    form_extra_fields = {
+        'role': SelectField(
+            'Role',
+            choices=[('admin', 'admin'), ('teacher', 'teacher'), ('student', 'student')],
+            coerce=str
+        )
+    }
+
+# Custom CourseAdmin: delete enrollments before deleting a course
+class CourseAdmin(SecureModelView):
+    """
+    We override delete_model so that when you delete a course,
+    we first remove the associated enrollments that reference it.
+    This prevents the NOT NULL / foreign key constraint errors.
+    """
+    def delete_model(self, model):
+        try:
+            # Remove all enrollments that reference this course
+            Enrollment.query.filter_by(course_id=model.id).delete()
+            # Now remove the course
+            db.session.delete(model)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            return False
+        return True
+
+# Add the views to the admin panel
+admin_panel = Admin(app, name="Admin Panel", template_mode="bootstrap3")
+admin_panel.add_view(UserAdmin(User, db.session))
+admin_panel.add_view(CourseAdmin(Course, db.session))
+admin_panel.add_view(SecureModelView(Enrollment, db.session))
+
+# ============= ROUTES ============= #
+
+@app.route('/me', methods=['GET'])
+def me():
+    return jsonify(session.get("user", {}))
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -181,12 +244,14 @@ def login():
     password = data.get("password", "").strip()
     user = User.query.filter_by(username=username, password=password).first()
     if user:
+        session["user"] = user.to_dict()
         return jsonify({"message": "Login successful", "user": user.to_dict()}), 200
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
 @app.route('/logout', methods=['POST'])
 def logout():
+    session.pop("user", None)
     return jsonify({"message": "Logout successful"}), 200
 
 @app.route('/courses', methods=['GET'])

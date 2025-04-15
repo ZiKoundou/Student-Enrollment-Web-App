@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [user, setUser] = useState(null);
-  const [message, setMessage] = useState('');
+  const [username, setUsername]   = useState('');
+  const [password, setPassword]   = useState('');
+  const [user, setUser]           = useState(null);
+  const [message, setMessage]     = useState('');
 
   const handleLogin = (e) => {
     e.preventDefault();
     fetch('http://localhost:5000/login', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     })
@@ -19,6 +20,10 @@ function App() {
         if (res.ok) {
           setUser(data.user);  // user = {id, username, role, display_name}
           setMessage(data.message);
+          // If the logged-in user is an admin, redirect to the admin panel.
+          if (data.user.role === 'admin') {
+            window.location.href = 'http://localhost:5000/admin';
+          }
         } else {
           setMessage(data.message);
         }
@@ -31,7 +36,8 @@ function App() {
 
   const handleLogout = () => {
     fetch('http://localhost:5000/logout', {
-      method: 'POST'
+      method: 'POST',
+      credentials: 'include'
     })
       .then(() => {
         setUser(null);
@@ -45,12 +51,14 @@ function App() {
       });
   };
 
+  // Render dashboards for teachers and students.
   if (user && user.role === 'teacher') {
     return <TeacherDashboard user={user} onLogout={handleLogout} />;
   } else if (user && user.role === 'student') {
     return <StudentDashboard user={user} onLogout={handleLogout} />;
   }
 
+  // If no dashboard applies, show the login form.
   return (
     <div className="App">
       <h2>Login</h2>
@@ -87,9 +95,8 @@ function TeacherDashboard({ user, onLogout }) {
   const [enrollments, setEnrollments] = useState([]);
   const [message, setMessage] = useState('');
 
-  // Fetch teacher's courses
   useEffect(() => {
-    fetch(`http://localhost:5000/teacher/courses?username=${user.username}`)
+    fetch(`http://localhost:5000/teacher/courses?username=${user.username}`, { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) {
@@ -101,10 +108,9 @@ function TeacherDashboard({ user, onLogout }) {
       .catch(err => console.error(err));
   }, [user.username]);
 
-  // When teacher clicks on a course, fetch that course's enrollments
   const handleSelectCourse = (course) => {
     setSelectedCourse(course);
-    fetch(`http://localhost:5000/teacher/course/${course.id}/enrollments`)
+    fetch(`http://localhost:5000/teacher/course/${course.id}/enrollments`, { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) {
@@ -116,11 +122,10 @@ function TeacherDashboard({ user, onLogout }) {
       .catch(err => console.error(err));
   };
 
-  // Update grade for a specific student enrollment
   const handleGradeChange = (studentUsername, newGrade) => {
-    // teacher/update_grade => POST => {teacher_username, course_id, student_username, new_grade}
     fetch('http://localhost:5000/teacher/update_grade', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         teacher_username: user.username,
@@ -133,7 +138,6 @@ function TeacherDashboard({ user, onLogout }) {
         const data = await res.json();
         if (res.ok) {
           setMessage(data.message);
-          // refresh enrollments
           handleSelectCourse(selectedCourse);
         } else {
           setMessage(data.message);
@@ -201,9 +205,8 @@ function StudentDashboard({ user, onLogout }) {
   const [tab, setTab] = useState('myCourses'); // 'myCourses' or 'addCourses'
   const [message, setMessage] = useState('');
 
-  // Fetch the student's enrolled courses
   useEffect(() => {
-    fetch(`http://localhost:5000/student/courses?username=${user.username}`)
+    fetch(`http://localhost:5000/student/courses?username=${user.username}`, { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) {
@@ -215,9 +218,8 @@ function StudentDashboard({ user, onLogout }) {
       .catch((err) => console.error(err));
   }, [user.username]);
 
-  // Fetch all courses for "Add/Remove Courses" tab
   useEffect(() => {
-    fetch('http://localhost:5000/courses')
+    fetch('http://localhost:5000/courses', { credentials: 'include' })
       .then(async (res) => {
         const data = await res.json();
         if (res.ok) {
@@ -229,10 +231,10 @@ function StudentDashboard({ user, onLogout }) {
       .catch((err) => console.error(err));
   }, []);
 
-  // Enroll in a course
   const enrollInCourse = (courseId) => {
     fetch('http://localhost:5000/student/enroll', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: user.username, course_id: courseId })
     })
@@ -248,10 +250,10 @@ function StudentDashboard({ user, onLogout }) {
       .catch((err) => console.error(err));
   };
 
-  // Remove a course
   const removeFromCourse = (courseId) => {
     fetch('http://localhost:5000/student/remove', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: user.username, course_id: courseId })
     })
@@ -267,13 +269,12 @@ function StudentDashboard({ user, onLogout }) {
       .catch((err) => console.error(err));
   };
 
-  // Helper: Refresh both myCourses and allCourses
   const refreshCourses = () => {
-    fetch(`http://localhost:5000/student/courses?username=${user.username}`)
+    fetch(`http://localhost:5000/student/courses?username=${user.username}`, { credentials: 'include' })
       .then(res => res.json())
       .then(updatedCourses => setMyCourses(updatedCourses));
 
-    fetch('http://localhost:5000/courses')
+    fetch('http://localhost:5000/courses', { credentials: 'include' })
       .then(res => res.json())
       .then(updatedAllCourses => setAllCourses(updatedAllCourses));
   };
