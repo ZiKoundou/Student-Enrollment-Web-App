@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-function toggleSidebar() {
-  const sidePanel = document.querySelector('.side-panel');
-  // const mainPage = document.querySelector('.mainpage')
-  // Toggle the position of the sidebar (show or hide)
-  if (sidePanel.style.left === '-350px') {
-    sidePanel.style.left = '0px'; //show the sidebar
+// function toggleSidebar() {
+//   const sidePanel = document.querySelector('.side-panel');
+//   // const mainPage = document.querySelector('.mainpage')
+//   // Toggle the position of the sidebar (show or hide)
+//   if (sidePanel.style.left === '-350px') {
+//     sidePanel.style.left = '0px'; //show the sidebar
     
-  } else {
-    sidePanel.style.left = '-350px'; //hide the sidebar
-  }
-}
+//   } else {
+//     sidePanel.style.left = '-350px'; //hide the sidebar
+//   }
+// }
 function App() {
   const [username, setUsername]   = useState('');
   const [password, setPassword]   = useState('');
@@ -71,32 +71,34 @@ function App() {
 
   // If no dashboard applies, show the login form.
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-      <form onSubmit={handleLogin} className="login-form">
-        <div className="form-group">
-          <label htmlFor="username">Username:</label>
-          <input 
-            id="username"
-            type="text" 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)} 
-            required 
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
-          <input 
-            id="password"
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        <button type="submit" className="login-button">Login</button>
-      </form>
-      {message && <p className="login-message">{message}</p>}
+    <div className='login-container' style= {{backgroundColor: "#888a8c"}}>
+      <div className="surround-container">
+        <h2>Login</h2>
+        <form onSubmit={handleLogin} className="login-form">
+          <div className="form-group">
+            <label htmlFor="username">Username:</label>
+            <input 
+              id="username"
+              type="text" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <input 
+              id="password"
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)} 
+              required 
+            />
+          </div>
+          <button type="submit" className="login-button">Login</button>
+        </form>
+        {message && <p className="login-message">{message}</p>}
+      </div>
     </div>
   );
 }
@@ -160,18 +162,25 @@ function TeacherDashboard({ user, onLogout }) {
   };
 
   return (
+    <div className='main-content'>
     <div className="dashboard">
-      <h2>Welcome, Teacher {user.display_name}!</h2>
-      <button onClick={onLogout}>Logout</button>
-      <div style={{ margin: '20px 0' }}>
+      <div className='side-panel'>
+        <h2>Welcome, Teacher {user.display_name}!</h2>
+        <button className="default-button" onClick={onLogout}><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        
+        <div style={{ margin: '20px 0' }}>
         <h3>Your Courses</h3>
+        <hr/>
         {courses.map((course) => (
           <div 
             key={course.id} 
             className="course-card"
             style={{
               cursor: 'pointer',
-              backgroundColor: selectedCourse && selectedCourse.id === course.id ? '#e0f0ff' : '#fff'
+              backgroundColor: selectedCourse && selectedCourse.id === course.id ? '#e0f0ff' : '#fff',
+              color: "black",
+              borderRadius: "5px",
+              margin: "10px auto"
             }}
             onClick={() => handleSelectCourse(course)}
           >
@@ -180,18 +189,21 @@ function TeacherDashboard({ user, onLogout }) {
           </div>
         ))}
       </div>
+      </div>
+    
+      
+      
 
       {selectedCourse && (
-        <div>
+        <div className='container' style={{backgroundColor: "#888a8c"}}>
+        <div className='container'>
           <h3>Students in {selectedCourse.name}</h3>
           {enrollments.length === 0 && <p>No students enrolled yet.</p>}
           {enrollments.map((enroll) => (
             <div key={enroll.enrollment_id} className="course-card">
-              <p><strong>Name:</strong> {enroll.student_name}</p>
-              <p><strong>Username:</strong> {enroll.student_username}</p>
               <p>
-                <strong>Grade:</strong>
-                <input 
+                <hr/>
+                <strong>Name: </strong> {enroll.student_name}  <strong> Username:</strong> {enroll.student_username} <strong>Grade:</strong><input 
                   type="number"
                   defaultValue={enroll.grade}
                   style={{ width: '60px', marginLeft: '10px' }}
@@ -200,14 +212,18 @@ function TeacherDashboard({ user, onLogout }) {
                     handleGradeChange(enroll.student_username, newGrade);
                   }}
                 />
+                <hr/>
               </p>
             </div>
           ))}
+        </div>
         </div>
       )}
 
       {message && <p className="message">{message}</p>}
     </div>
+    </div>
+  
   );
 }
 
@@ -294,8 +310,8 @@ function StudentDashboard({ user, onLogout }) {
 
   return (
     <div className='main-content'>
-      <div className="container">
-        <button className="toggle-button" onClick={toggleSidebar}>Toggle Sidebar</button>
+      <div className="container" style={{backgroundColor: "#888a8c"}}>
+        {/* <button className="default-button" onClick={toggleSidebar}><i class="fa-solid fa-bars"></i></button> */}
         <div className="side-panel">
           <h2 style={{ textAlign: 'center' }}>Welcome, Student {user.display_name}!</h2>
           <button className= "default-button" onClick={onLogout}>

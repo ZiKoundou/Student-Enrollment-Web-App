@@ -47,7 +47,14 @@ button {
   font-family: sans-serif;
   background-color: #f9f9f9;
 }
-
+.surround-container{
+  max-width: 400px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-family: sans-serif;
+  background-color: #f9f9f9;
+}
 .login-form .form-group {
   margin-bottom: 15px;
 }
@@ -118,7 +125,7 @@ button {
   left: 0px; /* Initially hide the sidebar by positioning it off-screen */
   width: 250px;
   height: 100%;
-  background-color: #333;
+  background-color: #888a8c;
   color: white;
   padding: 20px;
   transition: left 0.3s ease-in-out; /* Smooth slide effect */
@@ -149,5 +156,5 @@ button {
 .main-content {
   flex-grow: 1;
   padding: 20px;
-  margin-left: 100px; /* Some spacing on the left */
+  margin-left: 310px; /* Some spacing on the left */
 }
