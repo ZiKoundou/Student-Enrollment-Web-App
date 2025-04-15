@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
+function toggleSidebar() {
+  const sidePanel = document.querySelector('.side-panel');
+  // const mainPage = document.querySelector('.mainpage')
+  // Toggle the position of the sidebar (show or hide)
+  if (sidePanel.style.left === '-350px') {
+    sidePanel.style.left = '0px'; //show the sidebar
+    
+  } else {
+    sidePanel.style.left = '-350px'; //hide the sidebar
+  }
+}
 function App() {
   const [username, setUsername]   = useState('');
   const [password, setPassword]   = useState('');
@@ -282,62 +293,70 @@ function StudentDashboard({ user, onLogout }) {
   };
 
   return (
-    <div className="container">
-      <div className="dashboard">
-        <h2>Welcome, Student {user.display_name}!</h2>
-        <button className= "default-button" onClick={onLogout}>Logout</button>
-
-        <div style={{ marginTop: '20px' , marginLeft: "100px", marginRight: "100px"}}>
-          <button className= "default-button"onClick={() => setTab('myCourses')}>Your Courses</button>
-          <button className= "default-button"onClick={() => setTab('addCourses')}>Add/Remove Courses</button>
+    <div className='main-content'>
+      <div className="container">
+        <button className="toggle-button" onClick={toggleSidebar}>Toggle Sidebar</button>
+        <div className="side-panel">
+          <h2 style={{ textAlign: 'center' }}>Welcome, Student {user.display_name}!</h2>
+          <button className= "default-button" onClick={onLogout}>
+            <i class="fa-solid fa-right-from-bracket"></i> Log Out
+          </button>
+            <button className= "default-button"onClick={() => setTab('myCourses')}>
+            <i class="fa-solid fa-book-open"></i> Your Courses</button>
+            <button className= "default-button"onClick={() => setTab('addCourses')}>
+            <i class="fa-solid fa-pen-to-square"></i> Edit Courses
+            </button>
+          
         </div>
-    </div>
-    <div className="container">
-        {tab === 'myCourses' && (
-          <div>
-            <h3>Your Courses</h3>
-            {myCourses.map((course) => (
-              <div key={course.id} className="course-card">
-                
-                <hr />
-                <p><strong>Course Name:</strong> {course.name}</p>
-                <p><strong>Teacher:</strong> {course.teacher}</p>
-                <p><strong>Time:</strong> {course.time}</p>
-                <p><strong>Enrolled:</strong> {course.students_enrolled}/{course.capacity}</p>
-                <p><strong>Your Grade:</strong> {course.grade}</p>
-                <hr />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {tab === 'addCourses' && (
-          <div>
-            <h3>Add/Remove Courses</h3>
-            {allCourses.map((course) => {
-              const isEnrolled = myCourses.some((mc) => mc.id === course.id);
-              const isFull = course.students_enrolled >= course.capacity;
-              return (
+      <div className="container">
+          {tab === 'myCourses' && (
+            <div>
+              <h3>Your Courses</h3>
+              {myCourses.map((course) => (
                 <div key={course.id} className="course-card">
+                  
+                  <hr />
                   <p><strong>Course Name:</strong> {course.name}</p>
                   <p><strong>Teacher:</strong> {course.teacher}</p>
                   <p><strong>Time:</strong> {course.time}</p>
                   <p><strong>Enrolled:</strong> {course.students_enrolled}/{course.capacity}</p>
-                  {isEnrolled ? (
-                    <button className= "default-button"onClick={() => removeFromCourse(course.id)}>Remove</button>
-                  ) : (
-                    !isFull ? (
-                      <button className= "default-button"onClick={() => enrollInCourse(course.id)}>Enroll</button>
-                    ) : (
-                      <p>This course is full.</p>
-                    )
-                  )}
+                  <p><strong>Your Grade:</strong> {course.grade}</p>
                   <hr />
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+
+          {tab === 'addCourses' && (
+            <div>
+              <h3>Add/Remove Courses</h3>
+              {allCourses.map((course) => {
+                const isEnrolled = myCourses.some((mc) => mc.id === course.id);
+                const isFull = course.students_enrolled >= course.capacity;
+                return (
+                  <div key={course.id} className="course-card">
+                    <hr />
+                    <p><strong>Course Name:</strong> {course.name}</p>
+                    <p><strong>Teacher:</strong> {course.teacher}</p>
+                    <p><strong>Time:</strong> {course.time}</p>
+                    <p><strong>Enrolled:</strong> {course.students_enrolled}/{course.capacity}</p>
+                    {isEnrolled ? (
+                      <button className= "default-button"onClick={() => removeFromCourse(course.id)}>Remove</button>
+                    ) : (
+                      !isFull ? (
+                        <button className= "default-button"onClick={() => enrollInCourse(course.id)}>Enroll</button>
+                      ) : (
+                        <p>This course is full.</p>
+                      )
+                    )}
+                    <hr />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+        </div>
         {message && <p className="message">{message}</p>}
       </div>
     </div>
